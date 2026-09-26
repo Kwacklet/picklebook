@@ -1,0 +1,6 @@
+# Keep Linux line endings (LF) even when the repo is edited on Windows.
+# Scripts with Windows line endings (CRLF) break inside Linux containers.
+* text=auto eol=lf
+*.png binary
+*.jpg binary
+*.pdf binary
