@@ -1,0 +1,105 @@
+# PickleBook application stack.
+# Start everything:      docker compose up -d --build
+# Stop (keeps data):     docker compose down
+# NEVER use "down -v" unless you want to delete the database volume.
+#
+# TAG = image version. Jenkins sets it to the build number (e.g. 15).
+# When you run it by hand without TAG, images are tagged "dev".
+
+name: picklebook
+
+services:
+  # ---------- Public entry point (the only published port) ----------
+  proxy:
+    build: ./proxy
+    image: picklebook/proxy:${TAG:-dev}
+    ports:
+      - "${HTTP_PORT:-8080}:8080"
+    depends_on:
+      frontend:
+        condition: service_healthy
+      courts-api:
+        condition: service_healthy
+      reservations-api:
+        condition: service_healthy
+    restart: unless-stopped
+    networks: [frontend-net]
+
+  # ---------- Web UI ----------
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        BUILD_NUMBER: ${TAG:-dev}   # shown on the page as "Build N"
+    image: picklebook/frontend:${TAG:-dev}
+    restart: unless-stopped
+    networks: [frontend-net]
+
+  # ---------- Courts API (Node.js / Express) ----------
+  courts-api:
+    build:
+      context: ./courts-api
+      target: production
+    image: picklebook/courts-api:${TAG:-dev}
+    environment:
+      PORT: 3001
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_NAME: ${DB_NAME:-picklebook}
+      DB_USER: ${DB_USER:?Set DB_USER in the .env file}
+      DB_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD in the .env file}
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+    networks: [frontend-net, backend-net]
+
+  # ---------- Reservations API (Node.js / Express) ----------
+  reservations-api:
+    build:
+      context: ./reservations-api
+      target: production
+    image: picklebook/reservations-api:${TAG:-dev}
+    environment:
+      PORT: 3002
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_NAME: ${DB_NAME:-picklebook}
+      DB_USER: ${DB_USER:?Set DB_USER in the .env file}
+      DB_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD in the .env file}
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+    networks: [frontend-net, backend-net]
+
+  # ---------- Database (PostgreSQL) ----------
+  # The db image has its own fixed tag: it only changes when the schema changes,
+  # so normal deployments and rollbacks never restart the database.
+  db:
+    build: ./db
+    image: picklebook/db:16-v1
+    environment:
+      POSTGRES_DB: ${DB_NAME:-picklebook}
+      POSTGRES_USER: ${DB_USER:?Set DB_USER in the .env file}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD in the .env file}
+    volumes:
+      - pg-data:/var/lib/postgresql/data   # named volume = data survives redeploys
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    restart: unless-stopped
+    networks: [backend-net]   # no ports published: unreachable from outside Docker
+
+volumes:
+  pg-data:
+
+networks:
+  # proxy, frontend and the APIs
+  frontend-net:
+  # APIs and the database only. "internal" = no internet access from this network.
+  backend-net:
+    internal: true
