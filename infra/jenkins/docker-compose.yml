@@ -1,0 +1,27 @@
+# Jenkins runs in its OWN compose project, separate from the app,
+# so the pipeline can never redeploy (or delete) Jenkins itself.
+#
+# Start:   cd infra/jenkins  then  docker compose up -d --build
+# Open:    http://localhost:8081
+# Unlock:  docker exec jenkins cat /var/jenkins_home/secrets/initialAdminPassword
+
+name: picklebook-jenkins
+
+services:
+  jenkins:
+    build: .
+    image: picklebook/jenkins:local
+    container_name: jenkins
+    user: root   # classroom/lab only: lets Jenkins use the host Docker socket (see README security note)
+    restart: unless-stopped
+    ports:
+      - "8081:8080"     # Jenkins web UI
+      - "50000:50000"   # agent port (not used by this project, kept for completeness)
+    environment:
+      JAVA_OPTS: "-Duser.timezone=Asia/Manila"
+    volumes:
+      - jenkins_home:/var/jenkins_home              # jobs, credentials, build history survive restarts
+      - /var/run/docker.sock:/var/run/docker.sock   # talk to the host's Docker Engine
+
+volumes:
+  jenkins_home:

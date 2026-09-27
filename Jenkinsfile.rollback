@@ -1,0 +1,66 @@
+// =====================================================================
+// PickleBook ROLLBACK pipeline (separate Jenkins job: picklebook-rollback)
+//
+// Redeploys an OLDER build that is still on this machine, e.g. build 12,
+// without rebuilding anything. The database is not touched.
+//
+// First run: Jenkins learns the parameter from this file, so the very first
+// run fails with "ROLLBACK_TAG must be a build number". After that the job
+// shows "Build with Parameters".
+// =====================================================================
+pipeline {
+    agent any
+
+    parameters {
+        string(name: 'ROLLBACK_TAG', defaultValue: '', description: 'Build number to go back to (for example: 12)')
+    }
+
+    environment {
+        COMPOSE_PROJECT_NAME = 'picklebook'
+        TAG = "${params.ROLLBACK_TAG}"
+    }
+
+    options {
+        disableConcurrentBuilds()
+    }
+
+    stages {
+        stage('Check Images Exist') {
+            steps {
+                script {
+                    if (!(params.ROLLBACK_TAG ==~ /\d+/)) {
+                        error('ROLLBACK_TAG must be a build number, for example 12')
+                    }
+                }
+                sh '''
+                  for service in proxy frontend courts-api reservations-api; do
+                    docker image inspect "picklebook/$service:$TAG" > /dev/null 2>&1 \
+                      || { echo "Image picklebook/$service:$TAG not found on this machine"; exit 1; }
+                  done
+                  echo "All images for build $TAG found"
+                '''
+            }
+        }
+
+        stage('Deploy Old Version') {
+            steps {
+                withCredentials([file(credentialsId: 'picklebook-env', variable: 'ENV_FILE')]) {
+                    sh 'cp "$ENV_FILE" .env'
+                }
+                sh 'docker compose up -d --no-build --remove-orphans'
+            }
+        }
+
+        stage('Smoke Test') {
+            steps {
+                sh 'sh scripts/smoke-test.sh'
+            }
+        }
+    }
+
+    post {
+        success { echo "ROLLBACK COMPLETE: build ${env.TAG} is live at http://localhost:8080" }
+        failure { echo "Rollback to build ${env.TAG} failed. Check the log above." }
+        cleanup { sh 'rm -f .env' }
+    }
+}
