@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PickleBook – Court Reservations</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="wrap topbar-inner">
+      <div class="brand">
+        <span class="logo" aria-hidden="true">●</span>
+        <div>
+          <!-- DEMO TIP (auto-deploy): change this heading, commit and push. -->
+          <h1>PickleBook Court Reservations</h1>
+          <p class="tagline">Book a pickleball court in under a minute.</p>
+        </div>
+      </div>
+      <span class="build-badge" id="build-badge">Build …</span>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <section class="stats" id="stats" aria-label="Summary">
+      <div class="stat"><span class="stat-label">Reservations</span><span class="stat-value" id="stat-total">–</span></div>
+      <div class="stat"><span class="stat-label">Pending</span><span class="stat-value" id="stat-pending">–</span></div>
+      <div class="stat"><span class="stat-label">Confirmed</span><span class="stat-value" id="stat-confirmed">–</span></div>
+      <div class="stat"><span class="stat-label">Revenue</span><span class="stat-value" id="stat-revenue">–</span></div>
+    </section>
+
+    <div class="grid">
+      <section class="card">
+        <h2>Courts</h2>
+        <p class="hint">Peak hours (5 PM onwards) are 20% higher.</p>
+        <ul class="courts" id="courts-list"><li class="muted">Loading courts…</li></ul>
+      </section>
+
+      <section class="card">
+        <h2>Book a court</h2>
+        <form id="booking-form" novalidate>
+          <label>Court
+            <select name="court_id" id="court-select" required></select>
+          </label>
+          <div class="row">
+            <label>Date
+              <input type="date" name="play_date" id="play-date" required>
+            </label>
+            <label>Start time
+              <select name="start_hour" id="start-hour" required></select>
+            </label>
+            <label>Hours
+              <select name="hours" required>
+                <option value="1">1</option><option value="2" selected>2</option>
+                <option value="3">3</option><option value="4">4</option>
+              </select>
+            </label>
+          </div>
+          <label>Your name
+            <input type="text" name="customer_name" maxlength="100" placeholder="Juan Dela Cruz" required>
+          </label>
+          <label>Mobile number
+            <input type="tel" name="contact" maxlength="20" placeholder="0917 123 4567" required>
+          </label>
+          <button type="submit" class="btn-primary">Reserve</button>
+          <p class="message" id="booking-message" role="status"></p>
+        </form>
+      </section>
+    </div>
+
+    <section class="card">
+      <div class="card-head">
+        <h2>Reservations</h2>
+        <div class="filters">
+          <label>Date <input type="date" id="filter-date"></label>
+          <label>Status
+            <select id="filter-status">
+              <option value="">All</option>
+              <option value="pending">Pending</option>
+              <option value="confirmed">Confirmed</option>
+              <option value="completed">Completed</option>
+              <option value="cancelled">Cancelled</option>
+            </select>
+          </label>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>#</th><th>Date</th><th>Time</th><th>Court</th><th>Customer</th><th>Total</th><th>Status</th><th>Actions</th></tr>
+          </thead>
+          <tbody id="reservations-body"><tr><td colspan="8" class="muted">Loading…</td></tr></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Staff: add a court</h2>
+      <form id="court-form" class="row" novalidate>
+        <label>Name <input type="text" name="name" maxlength="80" placeholder="Court 5" required></label>
+        <label>Surface
+          <select name="surface"><option>Outdoor</option><option>Indoor</option></select>
+        </label>
+        <label>Rate per hour (₱) <input type="number" name="hourly_rate" min="0" step="10" value="300" required></label>
+        <button type="submit" class="btn-secondary">Add court</button>
+      </form>
+      <p class="message" id="court-message" role="status"></p>
+    </section>
+  </main>
+
+  <footer class="wrap footer">
+    PickleBook · Systems Integration Final Project · <span id="build-footer">Build …</span>
+  </footer>
+
+  <!-- config.js is generated at image build time and holds the Jenkins build number -->
+  <script src="config.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
